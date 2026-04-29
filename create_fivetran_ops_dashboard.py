@@ -48,7 +48,12 @@ DATASETS = [
         "name": DS_STATUS,
         "displayName": "connector_status",
         "queryLines": sql_lines(
-            f"SELECT * FROM {LOG_REPORTS}.fivetran_platform__connection_status"
+            "SELECT\n"
+            "  *,\n"
+            "  1                                                                     AS connector_count,\n"
+            "  CASE WHEN connection_health = 'connected'                  THEN 1 ELSE 0 END AS is_healthy,\n"
+            "  CASE WHEN connection_health NOT IN ('connected', 'paused') THEN 1 ELSE 0 END AS has_issues\n"
+            f"FROM {LOG_REPORTS}.fivetran_platform__connection_status"
         ),
     },
     {
@@ -279,19 +284,19 @@ def page_overview():
     widgets = [
         place(counter("ov_total",
                       DS_STATUS,
-                      "COUNT(`connection_id`)",
+                      "SUM(`connector_count`)",
                       "total_connectors",
                       "Connectors Tracked"),
               0, 0, 2, 3),
         place(counter("ov_healthy",
                       DS_STATUS,
-                      "COUNT(CASE WHEN `connection_health` = 'connected' THEN 1 END)",
+                      "SUM(`is_healthy`)",
                       "healthy",
                       "Healthy Connectors"),
               2, 0, 2, 3),
         place(counter("ov_issues",
                       DS_STATUS,
-                      "COUNT(CASE WHEN `connection_health` NOT IN ('connected','paused') THEN 1 END)",
+                      "SUM(`has_issues`)",
                       "with_issues",
                       "Connectors With Issues"),
               4, 0, 2, 3),
