@@ -549,7 +549,8 @@ def delete_dashboard(dash_id: str):
         print(f"Deleted dashboard {dash_id}")
 
 
-def create_dashboard(display_name: str = "Fivetran Operations - Wesco POC") -> str:
+def create_dashboard(display_name: str = "Fivetran Operations - Wesco POC",
+                     parent_path: str = "/Shared") -> str:
     dashboard_def = {
         "datasets": DATASETS,
         "pages": [
@@ -565,6 +566,7 @@ def create_dashboard(display_name: str = "Fivetran Operations - Wesco POC") -> s
         "display_name": display_name,
         "warehouse_id": WAREHOUSE_ID,
         "serialized_dashboard": json.dumps(dashboard_def),
+        "parent_path": parent_path,
     }
     resp = requests.post(
         f"https://{HOST}/api/2.0/lakeview/dashboards",
