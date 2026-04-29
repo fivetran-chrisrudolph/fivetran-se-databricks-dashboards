@@ -50,10 +50,11 @@ DATASETS = [
         "queryLines": sql_lines(
             "SELECT\n"
             "  *,\n"
-            "  1                                                                     AS connector_count,\n"
-            "  CASE WHEN connection_health = 'connected'                  THEN 1 ELSE 0 END AS is_healthy,\n"
-            "  CASE WHEN connection_health NOT IN ('connected', 'paused') THEN 1 ELSE 0 END AS has_issues\n"
-            f"FROM {LOG_REPORTS}.fivetran_platform__connection_status"
+            "  1                                                                          AS connector_count,\n"
+            "  CASE WHEN connection_health = 'connected'                       THEN 1 ELSE 0 END AS is_healthy,\n"
+            "  CASE WHEN connection_health NOT IN ('connected','paused','deleted') THEN 1 ELSE 0 END AS has_issues\n"
+            f"FROM {LOG_REPORTS}.fivetran_platform__connection_status\n"
+            "WHERE connection_health != 'deleted'"
         ),
     },
     {
@@ -101,7 +102,8 @@ DATASETS = [
             "  event_subtype,\n"
             "  schema_name,\n"
             "  table_name,\n"
-            "  message_data\n"
+            "  message_data,\n"
+            "  1 AS record_count\n"
             f"FROM {LOG_REPORTS}.fivetran_platform__schema_changelog\n"
             "ORDER BY created_at DESC\n"
             "LIMIT 500"
@@ -500,18 +502,18 @@ def page_usage():
 
 def page_schema_changes():
     widgets = [
-        place(counter("sc_total", DS_SCHEMA, "COUNT(1)", "total_changes", "Schema Changes (Last 500)"),
+        place(counter("sc_total", DS_SCHEMA, "SUM(`record_count`)", "total_changes", "Schema Changes (Last 500)"),
               0, 0, 3, 3),
         place(bar("sc_by_type",
                   DS_SCHEMA,
                   "event_subtype", "`event_subtype`", "Event Type",
-                  "change_count",  "COUNT(1)",         "Count",
+                  "change_count",  "SUM(`record_count`)", "Count",
                   title="Schema Changes by Event Type"),
               0, 3, 3, 5),
         place(bar("sc_by_conn",
                   DS_SCHEMA,
                   "connection_name", "`connection_name`", "Connector",
-                  "change_count",    "COUNT(1)",           "Count",
+                  "change_count",    "SUM(`record_count`)", "Count",
                   title="Schema Changes by Connector"),
               3, 3, 3, 5),
         place(table("sc_tbl", DS_SCHEMA, [
